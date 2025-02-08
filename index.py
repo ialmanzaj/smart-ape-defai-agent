@@ -43,15 +43,7 @@ def chat():
         return jsonify({'error': 'An unexpected error occurred'}), 500
     
 # Retrieve a list of tokens the agent has deployed
-@app.route("/tokens", methods=['GET'])
-def tokens():
-    try:
-        tokens = get_tokens()
-        return jsonify({'tokens': tokens}), 200
-    except Exception as e:
-        app.logger.error(f"Unexpected error in tokens endpoint: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred'}), 500
-    
+
 # Retrieve a list of tokens the agent has deployed
 
 
