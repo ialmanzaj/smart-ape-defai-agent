@@ -46,7 +46,7 @@ async def chat(chat_input: ChatInput):
 
         # Create an async generator for the streaming response
         async def generate_response():
-            for chunk in run_agent(chat_input.input, agent_executor, config):
+            async for chunk in run_agent(chat_input.input, agent_executor, config):
                 yield chunk
 
         return StreamingResponse(
