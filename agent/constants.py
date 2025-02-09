@@ -56,6 +56,3 @@ Remember to:
 - Keep track of trade history
 - Look for arbitrage opportunities when possible
 """
-
-# Add these to constants.py
-UNISWAP_ROUTER_ADDRESS: Final[str] = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD"
