@@ -1,6 +1,7 @@
 import os
 import constants
 import json
+from typing import Optional
 
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
@@ -11,48 +12,108 @@ from cdp_langchain.utils import CdpAgentkitWrapper
 
 from db.wallet import add_wallet_info, get_wallet_info
 from agent.custom_actions.get_latest_block import get_latest_block
+from agent.custom_actions.trading.trade import UniswapSwapAction
+from cdp_langchain.tools import CdpTool
 
+class AgentManager:
+    _instance: Optional['AgentManager'] = None
+    _agent = None
+    _cdp_toolkit = None
+    _agentkit = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(AgentManager, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not self._agent:
+            self._initialize()
+
+    def _initialize(self):
+        """Initialize the agent and CDP toolkit."""
+        # Initialize LLM
+        llm = ChatOpenAI(model=constants.AGENT_MODEL)
+
+        # Initialize CDP Agentkit with wallet data
+        self._agentkit = self._setup_agentkit()
+        
+        # Initialize CDP toolkit
+        self._cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(self._agentkit)
+        
+        # Create Uniswap swap tool
+        uniswap_swap_tool = UniswapSwapAction()
+        tools = self._cdp_toolkit.get_tools() + [
+            CdpTool(
+                name="uniswap_swap",
+                description=uniswap_swap_tool.description,
+                cdp_agentkit_wrapper=self._agentkit,
+                func=uniswap_swap_tool.func,
+                args_schema=uniswap_swap_tool.args_schema
+            )
+        ]
+        
+        # Print available tools for debugging
+        print("Available tools:", flush=True)
+        for tool in tools:
+            print(f"- {tool.name}: {tool.description[:50]}...", flush=True)
+
+        # Create ReAct Agent
+        memory = MemorySaver()
+        self._agent = create_react_agent(
+            llm,
+            tools=tools,
+            checkpointer=memory,
+            state_modifier=constants.AGENT_PROMPT,
+        )
+
+    def _setup_agentkit(self) -> CdpAgentkitWrapper:
+        """Set up CDP Agentkit with wallet configuration."""
+        wallet_id = os.getenv(constants.WALLET_ID_ENV_VAR)
+        wallet_seed = os.getenv(constants.WALLET_SEED_ENV_VAR)
+        wallet_info = json.loads(get_wallet_info()) if get_wallet_info() else None
+
+        values = {}
+        if wallet_info:
+            wallet_id = wallet_info["wallet_id"]
+            wallet_seed = wallet_info["seed"]
+            print("Using wallet data from database:", wallet_id, flush=True)
+            values = {"cdp_wallet_data": json.dumps({"wallet_id": wallet_id, "seed": wallet_seed})}
+        elif wallet_id and wallet_seed:
+            print("Using wallet data from environment:", wallet_id, flush=True)
+            values = {"cdp_wallet_data": json.dumps({"wallet_id": wallet_id, "seed": wallet_seed})}
+
+        agentkit = CdpAgentkitWrapper(**values)
+        
+        
+        
+        # Store updated wallet data
+        wallet_data = agentkit.export_wallet()
+        add_wallet_info(json.dumps(wallet_data))
+        print("Exported wallet info to database", flush=True)
+        
+        return agentkit
+
+    @property
+    def agent(self):
+        """Get the initialized agent."""
+        return self._agent
+
+    @property
+    def cdp_toolkit(self):
+        """Get the initialized CDP toolkit."""
+        return self._cdp_toolkit
+
+    @property
+    def agentkit(self):
+        """Get the initialized CDP agentkit."""
+        return self._agentkit
+
+def get_agent_manager() -> AgentManager:
+    """Get the singleton instance of AgentManager."""
+    return AgentManager()
+
+# For backward compatibility
 def initialize_agent():
-    """Initialize the agent with CDP Agentkit."""
-    # Initialize LLM.
-    llm = ChatOpenAI(model=constants.AGENT_MODEL)
-
-    # Read wallet data from environment variable or database
-    wallet_id = os.getenv(constants.WALLET_ID_ENV_VAR)
-    wallet_seed = os.getenv(constants.WALLET_SEED_ENV_VAR)
-    wallet_info = json.loads(get_wallet_info()) if get_wallet_info() else None
-
-    # Configure CDP Agentkit Langchain Extension.
-    values = {}
-
-    # Load agent wallet information from database or environment variables
-    if wallet_info:
-        wallet_id = wallet_info["wallet_id"]
-        wallet_seed = wallet_info["seed"]
-        print("Initialized CDP Agentkit with wallet data from database:", wallet_id, wallet_seed, flush=True)
-        values = {"cdp_wallet_data": json.dumps({ "wallet_id": wallet_id, "seed": wallet_seed })}
-    elif wallet_id and wallet_seed:
-        print("Initialized CDP Agentkit with wallet data from environment:", wallet_id, wallet_seed, flush=True)
-        values = {"cdp_wallet_data": json.dumps({ "wallet_id": wallet_id, "seed": wallet_seed })}
-
-    agentkit = CdpAgentkitWrapper(**values)
-
-    # Export and store the updated wallet data back to environment variable
-    wallet_data = agentkit.export_wallet()
-    add_wallet_info(json.dumps(wallet_data))
-    print("Exported wallet info", wallet_data, flush=True)
-
-    # Initialize CDP Agentkit Toolkit and get tools.
-    cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
-    tools = cdp_toolkit.get_tools() + [get_latest_block]
-
-    # Store buffered conversation history in memory.
-    memory = MemorySaver()
-
-    # Create ReAct Agent using the LLM and CDP Agentkit tools.
-    return create_react_agent(
-        llm,
-        tools=tools,
-        checkpointer=memory,
-        state_modifier=constants.AGENT_PROMPT,
-    )
+    """Legacy function to get the initialized agent."""
+    return get_agent_manager().agent

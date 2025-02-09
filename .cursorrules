@@ -115,69 +115,66 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 
 # Scratchpad
 
-## Current Task: Implement Coinbase Agent Kit Integration
+## Current Task: Implement Uniswap Swap Action
 
 ### Analysis of Current State:
-
-1. We have basic CDP Agentkit integration in `agent/initialize_agent.py`
-2. We have Uniswap client implementation for Base Sepolia
-3. We have database schema for trades and wallet info
-4. We have basic agent action handling
+1. We have a basic trading/trade.py file with initial Uniswap integration
+2. Missing helper functions for token approval and quote fetching
+3. Need proper error handling and input validation
+4. Missing ABI imports and contract addresses
+5. Base Sepolia network configuration needed
 
 ### Implementation Plan:
 
-#### Phase 1: CDP Agentkit Integration
+#### Phase 1: Setup & Dependencies [Priority]
+[X] Add required imports (time, web3, etc.)
+[X] Load and validate Uniswap ABIs
+  [X] Router ABI
+  [X] Factory ABI
+  [X] ERC20 ABI for approvals
+[X] Define contract addresses for Base Sepolia
+  [X] Router
+  [X] Factory
+  [X] Common token addresses (WETH, USDC, etc.)
 
-[X] Basic CDP Agentkit setup
-[X] Wallet management integration
-[X] Database schema for trades
+#### Phase 2: Helper Functions
+[X] Implement approve() function for token approvals
+  [X] Add ERC20 approval logic
+  [X] Add approval amount validation
+  [X] Add approval status checking
+[X] Implement get_uniswap_quote() function
+  [X] Add proper pool fee handling
+  [X] Add slippage calculations
+  [X] Add quote validation
+[X] Add utility functions
+  [X] Token validation
+  [X] Amount conversion helpers
+  [X] Gas estimation
 
-#### Phase 2: Trading Features
+#### Phase 3: Main Swap Function Enhancement
+[X] Improve swap_on_uniswap function
+  [X] Add proper error handling
+  [X] Add input validation
+  [X] Add gas estimation
+  [X] Add transaction status monitoring
+  [X] Add better success/error messages
+[X] Add transaction receipt handling
+[X] Add better logging
 
-[X] Implement CDP SDK trade execution in Uniswap client
-[X] Add trade monitoring and status updates
-[X] Implement gas optimization using Base Sepolia
+#### Phase 4: Testing & Documentation [IN PROGRESS]
+[ ] Add unit tests
+  [ ] Test input validation
+  [ ] Test quote fetching
+  [ ] Test approval logic
+  [ ] Test swap execution
+[ ] Add integration tests
+[ ] Update documentation
+  [ ] Add usage examples
+  [ ] Add error handling docs
+  [ ] Add network configuration docs
 
-#### Phase 3: Agent Actions
-
-[X] Add trade execution actions to agent toolkit
-[X] Implement trade confirmation and status updates
-[X] Add error handling and recovery
-[] run the agent to execute trades locally in docker
-
-Completed Tasks:
-
-1. Implemented CDP SDK trade execution in UniswapClient
-2. Added trade execution actions to agent toolkit
-3. Implemented trade monitoring and status updates
-4. Added proper error handling and logging
-5. Updated agent prompt with new capabilities
-
-The agent can now:
-
-- Execute trades between tokens using CDP SDK
-- Monitor trade status and provide updates
-- Check token prices and estimate gas costs
-- Look for arbitrage opportunities
-- Keep track of trade history
-# Lessons
-
-## User Specified Lessons
-
-- You have a python venv in ./venv. Use it.
-- Include info useful for debugging in the program output.
-- Read the file before you try to edit it.
-- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
-
-## Cursor learned
-
-- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
-- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
-- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
-- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
-- CDP SDK version 0.10.3 is required for Base Sepolia integration
-- CDP Agentkit requires both cdp-langchain and cdp-agentkit-core packages
-- Use TransactionRequest from cdp_sdk.models for proper transaction formatting
-- Always include gas estimation before executing trades to prevent failures
-- Monitor trade status using web3.eth.get_transaction_receipt
+### Next Steps:
+1. Create unit tests for the swap functionality
+2. Add integration tests
+3. Update documentation with usage examples
 

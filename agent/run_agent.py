@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import AsyncIterator
 import os
 import logging
 from dotenv import load_dotenv
@@ -15,10 +15,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def run_agent(input, agent_executor, config) -> Iterator[str]:
+async def run_agent(input, agent_executor, config) -> AsyncIterator[str]:
     """Run the agent and yield formatted SSE messages"""
     try:
-        for chunk in agent_executor.stream(
+        async for chunk in agent_executor.astream(
             {"messages": [HumanMessage(content=input)]}, config
         ):
             if "agent" in chunk:
@@ -32,7 +32,7 @@ def run_agent(input, agent_executor, config) -> Iterator[str]:
                 if content:
                     yield format_sse(content, constants.EVENT_TYPE_TOOLS, functions=[name])
                     logger.info(f"Tool execution: {name} - {content}")
-                    handle_agent_action(name, content)
+                    await handle_agent_action(name, content)
     except Exception as e:
         error_msg = f"Error: {str(e)}"
         logger.error(error_msg)
