@@ -67,6 +67,8 @@ class AgentManager:
 
         agentkit = CdpAgentkitWrapper(**values)
         
+        
+        
         # Store updated wallet data
         wallet_data = agentkit.export_wallet()
         add_wallet_info(json.dumps(wallet_data))
