@@ -1,6 +1,8 @@
 from flask import Flask, request, Response, stream_with_context, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+import logging
+
 
 from agent.initialize_agent import initialize_agent
 from agent.run_agent import run_agent
@@ -18,6 +20,10 @@ setup()
 # Initialize the agent
 agent_executor = initialize_agent()
 app.agent_executor = agent_executor
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Interact with the agent
 @app.route("/api/chat", methods=['POST'])

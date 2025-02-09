@@ -12,13 +12,10 @@ Smart ape is your AI-powered, on-chain financial advisor. It builds personalized
 
 1. Smart Trade Execution:
    Real-time arbitrage detection on Uniswap
-   One-click trades via Coinbase Smart Wallets
-   Gas optimization using Base Sepolia
+   One-click trades via Coinbase 
 
 2. Portfolio Guardian:
-   24/7 portfolio monitoring
    Dynamic stop-loss & profit-taking
-   Basic trend forecasting
 
 3. Personalized Strategy:
    NLP-based financial assessment

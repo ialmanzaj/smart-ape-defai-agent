@@ -6,6 +6,8 @@ from eth_account import Account
 from eth_typing import Address
 import os
 from dotenv import load_dotenv
+from cdp_sdk import CdpClient
+from cdp_sdk.models import TransactionRequest
 
 load_dotenv()
 
@@ -16,6 +18,7 @@ class UniswapClient:
     def __init__(self):
         """Initialize Uniswap client with Base Sepolia configuration"""
         self.web3 = Web3(Web3.HTTPProvider(os.getenv('BASE_SEPOLIA_RPC_URL')))
+        self.cdp_client = CdpClient()
         self.uniswap = Uniswap(
             address=None,  # Use CDP SDK wallet address
             private_key=None,  # Use CDP SDK for signing
@@ -88,14 +91,33 @@ class UniswapClient:
     ) -> Optional[str]:
         """Execute a trade using CDP SDK wallet"""
         try:
-            # Note: Actual trade execution will be handled by CDP SDK
-            # This is a placeholder for the interface
-            logger.info(f"Executing trade: {amount_in} {token_in} -> {token_out}")
+            # Get the swap data from Uniswap
+            swap_data = self.uniswap.get_swap_data(
+                token_in,
+                token_out,
+                amount_in,
+                min_amount_out
+            )
             
-            # TODO: Implement actual trade execution using CDP SDK
-            # tx_hash = self.uniswap.make_trade(...)
+            # Create transaction request using CDP SDK
+            tx_request = TransactionRequest(
+                to=self.uniswap.router_address,
+                data=swap_data,
+                value=amount_in if token_in == self.uniswap.get_weth_address() else 0,
+                gas_limit=300000  # Safe default, will be estimated
+            )
             
-            return None  # Return tx_hash when implemented
+            # Send transaction using CDP SDK
+            tx_response = self.cdp_client.send_transaction(
+                wallet_address=wallet_address,
+                transaction=tx_request
+            )
+            
+            logger.info(f"Trade executed: {amount_in} {token_in} -> {token_out}")
+            logger.info(f"Transaction hash: {tx_response.hash}")
+            
+            return tx_response.hash
+            
         except Exception as e:
             logger.error(f"Error executing trade: {str(e)}")
             return None
@@ -109,8 +131,29 @@ class UniswapClient:
     ) -> int:
         """Estimate gas cost for a trade"""
         try:
-            # TODO: Implement gas estimation using CDP SDK
-            return 0
+            # Get the swap data from Uniswap
+            swap_data = self.uniswap.get_swap_data(
+                token_in,
+                token_out,
+                amount_in,
+                0  # min_amount_out not needed for gas estimation
+            )
+            
+            # Create transaction request
+            tx_request = TransactionRequest(
+                to=self.uniswap.router_address,
+                data=swap_data,
+                value=amount_in if token_in == self.uniswap.get_weth_address() else 0
+            )
+            
+            # Estimate gas using CDP SDK
+            gas_estimate = self.cdp_client.estimate_gas(
+                wallet_address=wallet_address,
+                transaction=tx_request
+            )
+            
+            return gas_estimate
+            
         except Exception as e:
             logger.error(f"Error estimating gas: {str(e)}")
             return 0 

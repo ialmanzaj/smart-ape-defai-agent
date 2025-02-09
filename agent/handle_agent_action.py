@@ -5,60 +5,116 @@ from web3 import Web3
 from decimal import Decimal
 import json
 import logging
+from typing import Optional
+from trading.uniswap_client import UniswapClient
+from trading.operations import TradingOperations
 
 logger = logging.getLogger(__name__)
 
-def execute_trade(from_token: str, to_token: str, amount: Decimal) -> bool:
+def execute_trade(
+    uniswap_client: UniswapClient,
+    trading_ops: TradingOperations,
+    token_in: str,
+    token_out: str,
+    amount_in: Decimal,
+    min_amount_out: Decimal,
+    wallet_address: str
+) -> Optional[str]:
     """
     Execute a trade between two tokens using Uniswap.
+    Returns the transaction hash if successful, None otherwise.
     """
     try:
-        # Connect to Base Sepolia
-        w3 = Web3(Web3.HTTPProvider("https://sepolia.base.org"))
-        if not w3.is_connected():
-            raise Exception("Failed to connect to Base Sepolia")
-
-        # Load wallet from AgentKit
-        wallet_data = json.loads(get_wallet_info())
-        wallet_address = wallet_data["wallet_id"]
-        private_key = wallet_data["seed"]
-
-        # Build transaction
-        tx = {
-            "from": wallet_address,
-            "to": constants.UNISWAP_ROUTER_ADDRESS,
-            "value": w3.to_wei(amount, 'ether'),
-            "gas": 2000000,
-            "gasPrice": w3.to_wei('10', 'gwei'),
-            "nonce": w3.eth.get_transaction_count(wallet_address),
-        }
-
-        # Sign and send transaction
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-        w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        logger.info(f"Trade executed: {amount} {from_token} -> {to_token}")
-        return True
+        # First estimate gas to ensure the trade is possible
+        gas_estimate = uniswap_client.estimate_gas(
+            token_in,
+            token_out,
+            amount_in,
+            wallet_address
+        )
+        
+        if gas_estimate == 0:
+            logger.error("Failed to estimate gas, trade may not be possible")
+            return None
+            
+        # Execute the trade
+        tx_hash = uniswap_client.execute_trade(
+            token_in,
+            token_out,
+            amount_in,
+            min_amount_out,
+            wallet_address
+        )
+        
+        if tx_hash:
+            # Record the trade in the database
+            trading_ops.record_trade(
+                wallet_address=wallet_address,
+                token_in=token_in,
+                token_out=token_out,
+                amount_in=str(amount_in),
+                min_amount_out=str(min_amount_out),
+                tx_hash=tx_hash,
+                gas_price=str(Web3.from_wei(gas_estimate, 'gwei')),
+                status='PENDING'
+            )
+            
+            logger.info(f"Trade executed successfully. Transaction hash: {tx_hash}")
+            return tx_hash
+        else:
+            logger.error("Trade execution failed")
+            return None
 
     except Exception as e:
         logger.error(f"Trade execution failed: {str(e)}")
-        return False
+        return None
 
-def handle_agent_action(agent_action, content):
+def handle_agent_action(agent_action: str, content: str) -> None:
     """
-    Adds handling for the agent action.
-    In our sample app, we just add deployed tokens and NFTs to the database.
+    Handle various agent actions including trade execution and monitoring.
     """
-    if agent_action == constants.TRADE_TOKEN:
-        # Search for contract address from output
-        address = re.search(r"0x[a-fA-F0-9]{40}", content).group()
-        # Add token to database
+    try:
+        if agent_action == constants.TRADE_USDC_FOR_BTC:
+            amount = Decimal(re.search(r'\d+', content).group())
+            execute_trade(
+                UniswapClient(),
+                TradingOperations(),
+                "USDC",
+                "BTC",
+                amount,
+                amount * Decimal('0.99'),  # 1% slippage
+                json.loads(get_wallet_info())["wallet_id"]
+            )
 
-    elif agent_action == constants.TRADE_USDC_FOR_BTC:
-        amount = Decimal(re.search(r'\d+', content).group())
-        execute_trade("USDC", "BTC", amount)
+        elif agent_action == constants.TRADE_USDC_FOR_ETH:
+            amount = Decimal(re.search(r'\d+', content).group())
+            execute_trade(
+                UniswapClient(),
+                TradingOperations(),
+                "USDC",
+                "ETH",
+                amount,
+                amount * Decimal('0.99'),  # 1% slippage
+                json.loads(get_wallet_info())["wallet_id"]
+            )
 
-    elif agent_action == constants.TRADE_USDC_FOR_ETH:
-        amount = Decimal(re.search(r'\d+', content).group())
-        execute_trade("USDC", "ETH", amount)
+        elif agent_action == "check_trade_status":
+            # Extract transaction hash from content
+            tx_hash = re.search(r'0x[a-fA-F0-9]{64}', content)
+            if tx_hash:
+                trading_ops = TradingOperations()
+                status = trading_ops.get_trade_status(tx_hash.group())
+                logger.info(f"Trade status for {tx_hash.group()}: {status}")
+
+        elif agent_action == "monitor_price":
+            # Extract token address from content
+            token_address = re.search(r'0x[a-fA-F0-9]{40}', content)
+            if token_address:
+                uniswap_client = UniswapClient()
+                price = uniswap_client.get_token_price(token_address.group())
+                trading_ops = TradingOperations()
+                trading_ops.record_price(token_address.group(), str(price))
+                logger.info(f"Recorded price for {token_address.group()}: {price} ETH")
+
+    except Exception as e:
+        logger.error(f"Error handling agent action {agent_action}: {str(e)}")
