@@ -12,6 +12,8 @@ from cdp_langchain.utils import CdpAgentkitWrapper
 
 from db.wallet import add_wallet_info, get_wallet_info
 from agent.custom_actions.get_latest_block import get_latest_block
+from agent.custom_actions.trading.trade import UniswapSwapAction
+from cdp_langchain.tools import CdpTool
 
 class AgentManager:
     _instance: Optional['AgentManager'] = None
@@ -38,7 +40,23 @@ class AgentManager:
         
         # Initialize CDP toolkit
         self._cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(self._agentkit)
-        tools = self._cdp_toolkit.get_tools() + [get_latest_block]
+        
+        # Create Uniswap swap tool
+        uniswap_swap_tool = UniswapSwapAction()
+        tools = self._cdp_toolkit.get_tools() + [
+            CdpTool(
+                name="uniswap_swap",
+                description=uniswap_swap_tool.description,
+                cdp_agentkit_wrapper=self._agentkit,
+                func=uniswap_swap_tool.func,
+                args_schema=uniswap_swap_tool.args_schema
+            )
+        ]
+        
+        # Print available tools for debugging
+        print("Available tools:", flush=True)
+        for tool in tools:
+            print(f"- {tool.name}: {tool.description[:50]}...", flush=True)
 
         # Create ReAct Agent
         memory = MemorySaver()

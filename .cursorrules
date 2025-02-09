@@ -115,72 +115,66 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 
 # Scratchpad
 
-## Current Task: Implement Coinbase Agent Kit Integration
+## Current Task: Implement Uniswap Swap Action
 
 ### Analysis of Current State:
-
-1. We have basic CDP Agentkit integration in `agent/initialize_agent.py`
-2. We have database schema for trades and wallet info
-3. We have basic agent action handling
-4. We have implemented USDC trade execution using CDP SDK
+1. We have a basic trading/trade.py file with initial Uniswap integration
+2. Missing helper functions for token approval and quote fetching
+3. Need proper error handling and input validation
+4. Missing ABI imports and contract addresses
+5. Base Sepolia network configuration needed
 
 ### Implementation Plan:
 
-#### Phase 1: CDP Agentkit Integration
+#### Phase 1: Setup & Dependencies [Priority]
+[X] Add required imports (time, web3, etc.)
+[X] Load and validate Uniswap ABIs
+  [X] Router ABI
+  [X] Factory ABI
+  [X] ERC20 ABI for approvals
+[X] Define contract addresses for Base Sepolia
+  [X] Router
+  [X] Factory
+  [X] Common token addresses (WETH, USDC, etc.)
 
-[X] Basic CDP Agentkit setup
-[X] Wallet management integration
-[X] Database schema for trades
+#### Phase 2: Helper Functions
+[X] Implement approve() function for token approvals
+  [X] Add ERC20 approval logic
+  [X] Add approval amount validation
+  [X] Add approval status checking
+[X] Implement get_uniswap_quote() function
+  [X] Add proper pool fee handling
+  [X] Add slippage calculations
+  [X] Add quote validation
+[X] Add utility functions
+  [X] Token validation
+  [X] Amount conversion helpers
+  [X] Gas estimation
 
-#### Phase 2: Trading Features
+#### Phase 3: Main Swap Function Enhancement
+[X] Improve swap_on_uniswap function
+  [X] Add proper error handling
+  [X] Add input validation
+  [X] Add gas estimation
+  [X] Add transaction status monitoring
+  [X] Add better success/error messages
+[X] Add transaction receipt handling
+[X] Add better logging
 
-1. Trade API Integration
-[X] Implement USDC trade execution using CDP SDK
-[X] Add USDC-specific trade handlers (buy/sell)
-[X] Update trade parameters to use USDC addresses
+#### Phase 4: Testing & Documentation [IN PROGRESS]
+[ ] Add unit tests
+  [ ] Test input validation
+  [ ] Test quote fetching
+  [ ] Test approval logic
+  [ ] Test swap execution
+[ ] Add integration tests
+[ ] Update documentation
+  [ ] Add usage examples
+  [ ] Add error handling docs
+  [ ] Add network configuration docs
 
-[ ] Add USDC balance tracking
-[ ] Implement USDC trade status monitoring
-[ ] Add USDC-specific trade history tracking
-
-2. Agent Prompts
-[ ] Create USDC-specific trade execution prompts
-[ ] Add USDC balance checking to agent capabilities
-[ ] Implement USDC price monitoring prompts
-
-3. Error Handling
-[X] Add USDC-specific error cases
-[X] Implement USDC balance validation
-[X] Add USDC slippage protection
-
-#### Phase 3: Agent Actions
-
-[X] Add trade execution actions to agent toolkit
-[X] Implement trade confirmation and status updates
-[X] Add error handling and recovery
-[ ] Run the agent to execute trades locally in docker
-
-Completed Tasks:
-
-1. Implemented CDP SDK trade execution in TradingClient
-2. Added trade execution actions to agent toolkit
-3. Implemented trade monitoring and status updates
-4. Added proper error handling and logging
-5. Updated agent prompt with new capabilities
-6. Added slippage protection and gas estimation
-7. Made the codebase async-compatible
-
-The agent can now:
-- Execute trades between USDC and other tokens using CDP SDK
-- Monitor trade status and provide updates
-- Check token prices and estimate gas costs
-- Handle errors gracefully with proper logging
-- Support decimal amounts in trade inputs
-- Protect against slippage with configurable threshold
-
-Next steps:
-1. Implement USDC balance tracking
-2. Add trade history tracking
-3. Create specific prompts for trade execution
-4. Test the implementation locally with docker
+### Next Steps:
+1. Create unit tests for the swap functionality
+2. Add integration tests
+3. Update documentation with usage examples
 
