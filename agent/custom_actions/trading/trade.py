@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from web3 import Web3
 
 from cdp_agentkit_core.actions import CdpAction
+from agent.custom_actions.trading.utils import approve
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,50 +33,6 @@ UNISWAP_ROUTER = "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4"  # Base Sepolia Ro
 UNISWAP_FACTORY = "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24"  # Base Sepolia Factory
 
 
-def approve(wallet: Wallet, user_address: str, token_address: str, spender: str, amount: str) -> str:
-    """Approve spender to spend tokens.
-
-    Args:
-        wallet: The wallet to approve from
-        token_address: The token to approve
-        spender: The address to approve (usually Uniswap router)
-        amount: The amount to approve in atomic units
-
-    Returns:
-        str: Success message or error
-    """
-    try:
-        # Check current allowance
-        allowance_result = wallet.invoke_contract(
-            contract_address=token_address,
-            method="allowance",
-            abi=ERC20_ABI,
-            args=[user_address, spender],
-        ).wait()
-
-        current_allowance = int(allowance_result.return_value)
-        amount_int = int(amount)
-
-        if current_allowance >= amount_int:
-            return "Already approved"
-
-        # Approve exact amount
-        approval = wallet.invoke_contract(
-            contract_address=token_address,
-            method="approve",
-            abi=ERC20_ABI,
-            args=[spender, amount],
-        ).wait()
-
-        if not approval.success:
-            return f"Error: Approval failed - {approval.error}"
-
-        return "Approved successfully"
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-
 def get_uniswap_quote(
     token_in_address: str, token_out_address: str, amount_in: str, fee: int = 3000
 ) -> str:
@@ -92,16 +50,47 @@ def get_uniswap_quote(
     try:
         # Connect to Base Sepolia
         w3 = Web3(Web3.HTTPProvider("https://sepolia.base.org"))
+        
+        if not w3.is_connected():
+            raise Exception("Failed to connect to Base Sepolia network")
+
+        # Validate token addresses
+        if not w3.is_address(token_in_address):
+            raise ValueError(f"Invalid token_in_address: {token_in_address}")
+        if not w3.is_address(token_out_address):
+            raise ValueError(f"Invalid token_out_address: {token_out_address}")
 
         # Create contract instance
         router = w3.eth.contract(
-            address=w3.to_checksum_address(UNISWAP_ROUTER), abi=UNISWAP_ROUTER_ABI
+            address=w3.to_checksum_address(UNISWAP_ROUTER), 
+            abi=UNISWAP_ROUTER_ABI
         )
+
+        # Check if pool exists
+        factory = w3.eth.contract(
+            address=w3.to_checksum_address(UNISWAP_FACTORY),
+            abi=UNISWAP_FACTORY_ABI
+        )
+        pool_address = factory.functions.getPool(
+            token_in_address,
+            token_out_address,
+            fee
+        ).call()
+        
+        if pool_address == "0x0000000000000000000000000000000000000000":
+            raise Exception(f"No pool found for token pair {token_in_address}/{token_out_address} with fee {fee}")
 
         # Get quote
         quote = router.functions.quoteExactInputSingle(
-            token_in_address, token_out_address, fee, amount_in, 0  # No price limit
+            token_in_address, 
+            token_out_address, 
+            fee, 
+            amount_in, 
+            0  # No price limit
         ).call()
+
+        if quote == 0:
+            raise Exception("Received zero quote amount - likely insufficient liquidity")
 
         return str(quote)
 
@@ -170,6 +159,11 @@ def swap_on_uniswap(
     """
     try:
         user_address = wallet.default_address.address_id
+        # Fund the wallet with a faucet transaction.
+        #faucet_tx = wallet.faucet()
+
+        # Wait for faucet transaction to land on-chain.
+        #faucet_tx.wait()
         logger.info(user_address)
         # Input validation
         if float(amount_in) <= 0:
@@ -194,11 +188,12 @@ def swap_on_uniswap(
 
         # Approve Uniswap router if needed
         approval_result = approve(
-            wallet, user_address, token_in_address, UNISWAP_ROUTER, atomic_amount_in
+            wallet, token_in_address, UNISWAP_ROUTER, atomic_amount_in
         )
         if approval_result.startswith("Error"):
             return f"Error approving Uniswap Router as spender: {approval_result}"
 
+        logger.info("Approval successful")
         # Get quote and calculate minimum output
         try:
             quote = get_uniswap_quote(
