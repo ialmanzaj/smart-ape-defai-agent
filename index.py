@@ -1,58 +1,77 @@
-from flask import Flask, request, Response, stream_with_context, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
+from pydantic import BaseModel
 from dotenv import load_dotenv
 import logging
-
+from typing import Optional
 
 from agent.initialize_agent import initialize_agent
 from agent.run_agent import run_agent
 from db.setup import setup
-from db.tokens import get_tokens
-
 
 load_dotenv()
-app = Flask(__name__)
-CORS(app)
+
+app = FastAPI(title="Smart Ape - AI-Powered DeFi Wealth Manager")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Setup SQLite tables
 setup()
 
 # Initialize the agent
 agent_executor = initialize_agent()
-app.agent_executor = agent_executor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Interact with the agent
-@app.route("/api/chat", methods=['POST'])
-def chat():
+
+class ChatInput(BaseModel):
+    input: str
+    conversation_id: str
+
+
+@app.post("/api/chat")
+async def chat(chat_input: ChatInput):
     try:
-        data = request.get_json()
-        # Parse the user input from the request
-        input = data['input']
-        # Use the conversation_id passed in the request for conversation memory
-        config = {"configurable": {"thread_id": data['conversation_id']}}
-        return Response(
-            stream_with_context(run_agent(input, app.agent_executor, config)),
-            mimetype='text/event-stream',
+        config = {"configurable": {"thread_id": chat_input.conversation_id}}
+
+        # Create an async generator for the streaming response
+        async def generate_response():
+            for chunk in run_agent(chat_input.input, agent_executor, config):
+                yield chunk
+
+        return StreamingResponse(
+            generate_response(),
+            media_type="text/event-stream",
             headers={
-                'Cache-Control': 'no-cache',
-                'Content-Type': 'text/event-stream',
-                'Connection': 'keep-alive',
-                'X-Accel-Buffering': 'no'
-            }
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/event-stream",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
         )
     except Exception as e:
-        app.logger.error(f"Unexpected error in chat endpoint: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred'}), 500
-    
-# Retrieve a list of tokens the agent has deployed
+        logger.error(f"Unexpected error in chat endpoint: {str(e)}")
+        return JSONResponse(
+            status_code=500, content={"error": "An unexpected error occurred"}
+        )
 
-# Retrieve a list of tokens the agent has deployed
+
+@app.get("/")
+async def root():
+    return {"message": "Smart Ape API is running"}
 
 
 if __name__ == "__main__":
-    app.run()
-    
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

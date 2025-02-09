@@ -1,4 +1,3 @@
-from trading.uniswap_client import UniswapClient
-from trading.operations import TradingOperations
+"""Trading package for Uniswap operations"""
 
 __all__ = ['UniswapClient', 'TradingOperations'] 

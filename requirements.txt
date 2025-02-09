@@ -1,4 +1,5 @@
-flask==3.0.3
+fastapi==0.110.0
+uvicorn==0.27.1
 langchain==0.3.6
 langchain-openai==0.2.5
 langgraph==0.2.42
@@ -9,9 +10,8 @@ cdp-langchain==0.0.4
 cdp-agentkit-core==0.0.3
 flask-cors==5.0.0
 gunicorn==20.1.0
-web3==6.15.1
-uniswap-python==0.7.1
-eth-abi==4.2.1
-eth-account==0.10.0
-eth-typing==3.5.2
-eth-utils==2.3.1
+web3==7.2.0
+eth-abi==5.1.0
+eth-account==0.13.3
+eth-typing==5.0.0
+eth-utils==5.0.0

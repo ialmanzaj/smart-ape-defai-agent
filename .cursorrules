@@ -1,6 +1,6 @@
 # Instructions
 
-During your interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+During your interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again.
 
 You should also use the `.cursorrules` file as a Scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the Scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
 [X] Task 1
@@ -19,16 +19,19 @@ Note all the tools are in python. So in the case you need to do batch processing
 The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
 
 1. Screenshot Capture:
+
 ```bash
 venv/bin/python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
 ```
 
 2. LLM Verification with Images:
+
 ```bash
 venv/bin/python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
 ```
 
 Example workflow:
+
 ```python
 from screenshot_utils import take_screenshot_sync
 from llm_api import query_llm
@@ -50,11 +53,13 @@ print(response)
 ## LLM
 
 You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
+
 ```
 venv/bin/python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
 ```
 
 The LLM API supports multiple providers:
+
 - OpenAI (default, model: gpt-4o)
 - Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
 - DeepSeek (model: deepseek-chat)
@@ -67,23 +72,29 @@ But usually it's a better idea to check the content of the file and use the APIs
 ## Web browser
 
 You could use the `tools/web_scraper.py` file to scrape the web.
+
 ```
 venv/bin/python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
 ```
+
 This will output the content of the web pages.
 
 ## Search engine
 
 You could use the `tools/search_engine.py` file to search the web.
+
 ```
 venv/bin/python ./tools/search_engine.py "your search keywords"
 ```
+
 This will output the search results in the following format:
+
 ```
 URL: https://example.com
 Title: This is the title of the search result
 Snippet: This is a snippet of the search result
 ```
+
 If needed, you can further use the `web_scraper.py` file to scrape the web page content.
 
 # Lessons
@@ -107,6 +118,7 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 ## Current Task: Implement Coinbase Agent Kit Integration
 
 ### Analysis of Current State:
+
 1. We have basic CDP Agentkit integration in `agent/initialize_agent.py`
 2. We have Uniswap client implementation for Base Sepolia
 3. We have database schema for trades and wallet info
@@ -115,21 +127,26 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 ### Implementation Plan:
 
 #### Phase 1: CDP Agentkit Integration
+
 [X] Basic CDP Agentkit setup
 [X] Wallet management integration
 [X] Database schema for trades
 
 #### Phase 2: Trading Features
+
 [X] Implement CDP SDK trade execution in Uniswap client
 [X] Add trade monitoring and status updates
 [X] Implement gas optimization using Base Sepolia
 
 #### Phase 3: Agent Actions
+
 [X] Add trade execution actions to agent toolkit
 [X] Implement trade confirmation and status updates
 [X] Add error handling and recovery
+[] run the agent to execute trades locally in docker
 
 Completed Tasks:
+
 1. Implemented CDP SDK trade execution in UniswapClient
 2. Added trade execution actions to agent toolkit
 3. Implemented trade monitoring and status updates
@@ -137,21 +154,23 @@ Completed Tasks:
 5. Updated agent prompt with new capabilities
 
 The agent can now:
+
 - Execute trades between tokens using CDP SDK
 - Monitor trade status and provide updates
 - Check token prices and estimate gas costs
 - Look for arbitrage opportunities
 - Keep track of trade history
-
 # Lessons
 
 ## User Specified Lessons
+
 - You have a python venv in ./venv. Use it.
 - Include info useful for debugging in the program output.
 - Read the file before you try to edit it.
 - Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
 
 ## Cursor learned
+
 - For search results, ensure proper handling of different character encodings (UTF-8) for international queries
 - Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
 - When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
@@ -161,3 +180,4 @@ The agent can now:
 - Use TransactionRequest from cdp_sdk.models for proper transaction formatting
 - Always include gas estimation before executing trades to prevent failures
 - Monitor trade status using web3.eth.get_transaction_receipt
+

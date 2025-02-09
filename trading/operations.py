@@ -2,7 +2,6 @@ import sqlite3
 import logging
 from typing import List, Dict, Optional
 from datetime import datetime
-from .uniswap_client import UniswapClient
 from web3 import Web3
 
 logging.basicConfig(level=logging.INFO)
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 class TradingOperations:
     def __init__(self):
         """Initialize trading operations with Uniswap client"""
-        self.uniswap = UniswapClient()
+       
         self.db_path = "agent.db"
         self.web3 = Web3(Web3.HTTPProvider("https://sepolia.base.org"))
     
