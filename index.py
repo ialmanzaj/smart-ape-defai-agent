@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 class ChatInput(BaseModel):
     input: str
-    conversation_id: str
+    conversation_id: int
 
 
 @app.post("/api/chat")
